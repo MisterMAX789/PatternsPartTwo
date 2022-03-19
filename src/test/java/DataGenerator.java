@@ -10,7 +10,7 @@ import java.util.Locale;
 import static io.restassured.RestAssured.given;
 
 public class DataGenerator {
-
+    private static final Faker faker = new Faker(new Locale("en"));
     private static final RequestSpecification requestSpec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
             .setPort(9999)
@@ -18,52 +18,48 @@ public class DataGenerator {
             .setContentType(ContentType.JSON)
             .log(LogDetail.ALL)
             .build();
-    private static final Faker faker = new Faker(new Locale("en"));
-
-    private DataGenerator() {
-    }
 
     @Value
     public static class RegistrationDto {
         String login;
         String password;
         String status;
+    }
 
-        private static void sendRequest(RegistrationDto user) {
-            //Запрос
-            given() //"дано"
+
+    private DataGenerator() {
+    }
+
+    public static String getRandomLogin() {
+        return faker.name().username();
+    }
+
+    public static String getRandomPassword() {
+        return faker.internet().password();
+    }
+
+    public static class Registration {
+        private Registration() {
+        }
+
+        public static RegistrationDto getUser(String status) {
+            return new RegistrationDto(getRandomLogin(), getRandomPassword(), status);
+        }
+
+        public static RegistrationDto getRegisteredUser(String status) {
+            var registeredUser = getUser(status);
+            sendRequest(registeredUser);
+            return registeredUser;
+        }
+
+        public static void sendRequest(RegistrationDto registeredUser) {
+            given()
                     .spec(requestSpec)
-                    .body(new RegistrationDto(
-                            user.getLogin(),
-                            user.getPassword(),
-                            user.getStatus()))
+                    .body(registeredUser)
                     .when()
                     .post("/api/system/users")
                     .then()
                     .statusCode(200);
-        }
-
-        public static String generateLogin() {
-            return faker.name().firstName();
-        }
-
-        public static String generatePassword() {
-            return faker.internet().password();
-        }
-
-        public static class Registration {
-            private Registration() {
-            }
-
-            public static RegistrationDto generateUser(String status) {
-                return new RegistrationDto(generateLogin(), generatePassword(), status);
-            }
-
-            public static RegistrationDto registerUser(String status) {
-                RegistrationDto registerUser = generateUser(status);
-                sendRequest(registerUser);
-                return registerUser;
-            }
         }
     }
 }
